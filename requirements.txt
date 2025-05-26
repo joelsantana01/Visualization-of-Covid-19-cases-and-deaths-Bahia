@@ -1,0 +1,11 @@
+streamlit
+streamlit_option_menu
+numpy
+seaborn
+matplotlib
+folium 
+pandas
+geobr
+geopandas
+unidecode
+streamlit-folium
