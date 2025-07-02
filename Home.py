@@ -206,7 +206,7 @@ st.set_page_config(page_title="Página Principal", page_icon="📊", layout="wid
 
 with st.sidebar:
     choose = option_menu("", ["Home", "Mapas Interativos", "Séries Temporais","Mapas Espaço-Temporais", "Sobre o Autor"],
-                         icons=['house', 'map', 'graph-up','map', 'person'],
+                         icons=['house', 'geo-alt', 'graph-up','map', 'person'],
                          default_index=0,
                          orientation="vertical",  
                          styles={
