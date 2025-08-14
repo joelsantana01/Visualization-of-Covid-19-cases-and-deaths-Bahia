@@ -206,7 +206,7 @@ st.set_page_config(page_title="Página Principal", page_icon="📊", layout="wid
 
 with st.sidebar:
     choose = option_menu("", ["Home", "Mapas Interativos", "Séries Temporais","Mapas Espaço-Temporais", "Sobre o Autor"],
-                         icons=['house', 'map', 'graph-up','map', 'person'],
+                         icons=['house', 'geo-alt', 'graph-up','map', 'person'],
                          default_index=0,
                          orientation="vertical",  
                          styles={
@@ -294,7 +294,7 @@ elif choose == "Mapas Interativos":
         
         genero = st.multiselect("Selecione o gênero: ", ["Masculino", "Feminino"], placeholder= "Clique nas opções")
         
-        taxa = st.selectbox("Como deseja mapear os dados?", ["Casos absolutos", "Taxa pela população de 2023"], placeholder="Escolha uma opção")
+        taxa = st.selectbox("Como deseja mapear os dados?", ["Casos absolutos"], placeholder="Escolha uma opção")
 
 
     
@@ -587,7 +587,6 @@ elif choose == "Mapas Espaço-Temporais":
                     .sort_index()
                     .cumsum()
                 )
-            st.dataframe(df_filtrado)
 
 
             bahia = read_municipality(code_muni=29, year=2019)
@@ -656,11 +655,13 @@ elif choose == "Mapas Espaço-Temporais":
                     .sort_index()
                     .cumsum()
                 )
-            st.dataframe(df_filtrado)
+
 
 
             bahia = read_municipality(code_muni=29, year=2019)
-            bahia['name_muni'] = [unidecode(m).upper().strip() if pd.notna(m) else m for m in bahia['name_muni']]
+            bahia['name_muni'] = bahia['name_muni'].apply(
+            lambda x: unidecode(x).upper().strip() if pd.notna(x) else x
+            )
 
             
             def preparar_df_semana(casos_semana, semana):
@@ -671,10 +672,18 @@ elif choose == "Mapas Espaço-Temporais":
                     casos_df.columns = ['name_muni', 'casos'] 
         
                     df = df.merge(casos_df, on='name_muni', how='left')
-                    df['casos'] = df['casos'].fillna(0) 
+                    df['casos'] = df['casos'].fillna(0)
                 else:
                     df['casos'] = 0
-    
+                
+                ####### colocar aqui para atualizar as taxas
+                # fazer um merge entre pop e df, ai fazer a divisao no vetor
+                pop.rename(columns={'População Residente - Estimativas para o TCU - Bahia': 'name_muni'}, inplace=True)
+                df = pd.merge(df, pop, on='name_muni', how='left')
+                #tem dois municipios com nomes diferentes 
+
+                df['casos'] = df['casos'] / df['Unnamed: 1']
+                # tem que ajustar o vmax
                 return df
             
             def animar_mapa(casos, semanas, ano, nome_arquivo):
@@ -682,18 +691,20 @@ elif choose == "Mapas Espaço-Temporais":
                 plt.subplots_adjust(left=0.01, right=0.9, top=0.95, bottom=0.01)
 
                 vmin = 0
-                vmax = casos.max().max() 
+                #vmax = casos.max().max() 
+                vmax = 0.13
 
                 def update(frame):
                     semana = semanas[frame]
                     df = preparar_df_semana(casos, semana)
+
                     ax.clear()
                     df.plot(column='casos', cmap='OrRd', linewidth=0.8, ax=ax,
                         edgecolor='0.7', legend=False, vmin=vmin, vmax=vmax)
                     ax.set_xlim(bahia.total_bounds[[0, 2]])
                     ax.set_ylim(bahia.total_bounds[[1, 3]])
                     ax.axis('off')
-                    ax.set_title(f'Casos acumulados de Covid-19 - {ano}, Semana {semana}', fontsize=15)
+                    ax.set_title(f'Taxas (casos/população) de Casos acumulados de Covid-19 - {ano}, Semana {semana}', fontsize=15)
 
                 sm = plt.cm.ScalarMappable(cmap='OrRd', norm=plt.Normalize(vmin=vmin, vmax=vmax))
                 sm._A = []
@@ -711,6 +722,8 @@ elif choose == "Mapas Espaço-Temporais":
                 imagem = file.read()
             st.download_button(label="Baixar GIF", data=imagem, file_name="imagem.gif",
                                mime="image/gif", icon=":material/download:",type='tertiary')
+            
+           
 
 
 
